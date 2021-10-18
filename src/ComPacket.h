@@ -11,7 +11,7 @@
 #include <queue>
 
 #include "IdManager.h"
-#include "../io/VectorStream.h"
+#include "VectorStream.h"
 
 class ComPacket
 {

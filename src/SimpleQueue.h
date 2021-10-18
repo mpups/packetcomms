@@ -10,7 +10,7 @@
 #include <condition_variable>
 
 #include <assert.h>
-#include "../packetcomms/ComPacket.h"
+#include "ComPacket.h"
 
 /**
     Simple FIFO message queue for com-packets.

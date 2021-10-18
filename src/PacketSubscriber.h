@@ -24,7 +24,7 @@ public:
     PacketSubscriber( PacketSubscriber& ) = delete;
     PacketSubscriber( PacketSubscriber&& ) = delete;
 
-    const IdManager::PacketType GetType() const { return m_type; };
+    IdManager::PacketType GetType() const { return m_type; };
 
     const PacketDemuxer& GetDemuxer() const { return m_comms; };
 

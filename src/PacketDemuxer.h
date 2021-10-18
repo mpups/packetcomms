@@ -15,7 +15,7 @@
 #include "PacketSubscription.h"
 #include "PacketSubscriber.h"
 #include "ControlMessage.h"
-#include "../network/Socket.h"
+#include "network/AbstractSocket.h"
 
 /**
     Class which manages communications to and from the robot.

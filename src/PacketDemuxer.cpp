@@ -271,7 +271,7 @@ void PacketDemuxer::ReceiveHelloMessage( ComPacket& packet, const int timeoutInM
     }
 }
 
-void PacketDemuxer::HandleControlMessage( const ComPacket::ConstSharedPacket& sptr )
+void PacketDemuxer::HandleControlMessage( const ComPacket::ConstSharedPacket& )
 {
 }
 

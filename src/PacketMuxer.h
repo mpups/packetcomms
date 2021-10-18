@@ -4,8 +4,6 @@
 #ifndef _PACKET_MUXER_H_
 #define _PACKET_MUXER_H_
 
-#include <VideoLib.h>
-
 #include <iostream>
 #include <cstdint>
 #include <queue>
@@ -17,9 +15,8 @@
 #include "ComPacket.h"
 #include "PacketSubscription.h"
 #include "ControlMessage.h"
-#include "../network/AbstractSocket.h"
-
-#include "../io/VectorStream.h"
+#include "network/AbstractSocket.h"
+#include "VectorStream.h"
 
 #include <mutex>
 #include <chrono>
@@ -44,18 +41,19 @@
 */
 class PacketMuxer
 {
-    friend void TestPacketMuxer();
-
 public:
     typedef std::shared_ptr<PacketSubscriber> Subscription;
 
-    PacketMuxer( AbstractWriter& socket, const std::vector<std::string>& packetIds );
+    PacketMuxer(AbstractWriter& socket, const std::vector<std::string>& packetIds);
     virtual ~PacketMuxer();
 
     bool Ok() const;
 
     template <typename ...Args>
     void EmplacePacket(const std::string& name, Args&&... args);
+
+    uint32_t GetNumPosted() const { return m_numPosted; };
+    uint32_t GetNumSent() const { return m_numSent; };
 
 protected:
     typedef std::pair< IdManager::PacketType, ComPacket::PacketContainer > MapEntry;
@@ -66,9 +64,6 @@ protected:
     void SendPacket( const ComPacket& packet );
 
     bool WriteBytes( const uint8_t* buffer, size_t& size );
-
-    uint32_t GetNumPosted() const { return m_numPosted; };
-    uint32_t GetNumSent() const { return m_numSent; };
 
 private:
     void SignalPacketPosted();
