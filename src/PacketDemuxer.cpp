@@ -48,7 +48,10 @@ bool PacketDemuxer::Ok() const
 }
 
 /**
-    Returns a subscriber object.
+ *  Subscribe to a packet type and register a callback.
+ *
+ *  Returns a subscription object that will automatically unsubsribe
+ *  (and deregister the callback) when it goes out of scope.
 */
 PacketSubscription PacketDemuxer::Subscribe( const std::string& typeName, PacketSubscriber::CallBack callback )
 {
@@ -124,7 +127,7 @@ void PacketDemuxer::ReceiveLoop()
         if ( ReceivePacket( packet, timeoutInMilliseconds ) )
         {
             const IdManager::PacketType packetType = packet.GetType(); // Need to cache this before we use std::move
-            //std::clog << m_packetIds.ToString( packetType ) << " bytes: " << packet.GetDataSize() << std::endl;
+            //std::clog << GetIdManager().ToString( packetType ) << " bytes: " << packet.GetDataSize() << std::endl;
             auto sptr = std::make_shared<ComPacket>( std::move(packet) );
 
             if ( packetType == IdManager::ControlPacket )

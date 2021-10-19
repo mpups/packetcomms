@@ -2,6 +2,7 @@
 #define __TCP_SOCKET_H__
 
 #include "Socket.h"
+#include <memory>
 
 /**
     Class for creating TCP (stream) sockets.
@@ -15,7 +16,7 @@ public:
     virtual ~TcpSocket();
 
     bool Listen( int );
-    TcpSocket* Accept();
+    std::unique_ptr<TcpSocket> Accept();
 
     void SetNagleBufferingOn();
     void SetNagleBufferingOff();

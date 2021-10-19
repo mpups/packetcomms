@@ -9,7 +9,7 @@
     shared ComPacket.
 */
 
-#include "../io/Serialisation.h"
+#include "Serialisation.h"
 
 template <typename ...Args>
 void Serialise( PacketMuxer& muxer, const std::string& id, const Args& ...types )

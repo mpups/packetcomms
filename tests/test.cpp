@@ -50,8 +50,8 @@ void serialize(Archive& archive,
 BOOST_AUTO_TEST_CASE(TestVectorStream) {
     Type1 in1{1,2,3};
     constexpr int intIn = 35;
-    Type1 in2{4000,5000,6000};
-    Type2 in3{true,0.1f,{10,11,12}};
+    Type1 in2{4000, 5000, 6000};
+    Type2 in3{true, 0.1f, {10, 11, 12}};
 
     const ComPacket pkt;
     {
@@ -254,7 +254,7 @@ const char UDP_MSG[] = "Udp connection-less Datagram!";
 void* RunTcpServerThread( void* arg )
 {
     TcpSocket* server = (TcpSocket*)arg;
-    TcpSocket* connection = server->Accept();
+    auto connection = server->Accept();
 
     BOOST_CHECK(connection != nullptr);
     if ( connection )
@@ -267,7 +267,6 @@ void* RunTcpServerThread( void* arg )
         BOOST_CHECK_EQUAL(msg, MSG);
 
         connection->Shutdown();
-        delete connection;
     }
 
 	return 0;

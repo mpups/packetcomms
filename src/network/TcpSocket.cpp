@@ -65,21 +65,23 @@ bool TcpSocket::Listen( int queueSize )
 
     @return New client socket connection - or null on error or timeout.
 **/
-TcpSocket* TcpSocket::Accept()
+std::unique_ptr<TcpSocket> TcpSocket::Accept()
 {
-    int reuse = 1;
-    setsockopt( m_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int) );
-    
-    struct sockaddr_in addr;
-    memset( (void*)&addr, 0, sizeof(sockaddr_in) );
-    
-    socklen_t clientSize = sizeof(addr);
-    int socket = accept( m_socket, (struct sockaddr*)&addr, &clientSize );
-    if (socket != -1) {
-        return new TcpSocket(socket);
-    }
+  std::unique_ptr<TcpSocket> connection;
 
-    return nullptr;
+  int reuse = 1;
+  setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+
+  struct sockaddr_in addr;
+  memset((void*)&addr, 0, sizeof(sockaddr_in));
+
+  socklen_t clientSize = sizeof(addr);
+  int socket = accept(m_socket, (struct sockaddr*)&addr, &clientSize);
+  if (socket != -1) {
+    connection.reset(new TcpSocket(socket));
+  }
+
+  return connection;
 }
 
 

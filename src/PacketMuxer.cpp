@@ -107,8 +107,8 @@ void PacketMuxer::SendLoop()
     @note Assumes you have acquired the appropriate
     lock to access the specified PacketContainer.
 
-     @bug Bug on shutdown - the queues are always empty so we never attempt to send any packets
-     and therefore never get to state where m_transportError is true, hence the caller loops forever.
+    @bug Bug on shutdown - the queues are always empty so we never attempt to send any packets
+    and therefore never get to state where m_transportError is true, hence the caller loops forever.
 */
 void PacketMuxer::SendAll( ComPacket::PacketContainer& packets )
 {
