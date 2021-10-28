@@ -20,7 +20,7 @@ PacketSubscription& PacketSubscription::operator=(PacketSubscription&& toMove) {
 */
 PacketSubscription::~PacketSubscription() {
   if (m_subscriber != nullptr && m_subscriber.use_count() > 1) {
-    m_subscriber->Unsubscribe();
+    m_subscriber->unsubscribe();
   }
 }
 
@@ -30,10 +30,10 @@ PacketSubscription::~PacketSubscription() {
     The underlying subscriber can be unsubscribed before the PacketSubscription
     goes out of scope if the PacketDemuxer's receive thread terminates.
 */
-bool PacketSubscription::IsSubscribed() const {
-  return m_subscriber->IsSubscribed();
+bool PacketSubscription::isSubscribed() const {
+  return m_subscriber->isSubscribed();
 }
 
-const PacketDemuxer& PacketSubscription::GetDemuxer() const {
-  return m_subscriber->GetDemuxer();
+const PacketDemuxer& PacketSubscription::getDemuxer() const {
+  return m_subscriber->getDemuxer();
 }

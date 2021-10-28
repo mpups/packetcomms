@@ -27,10 +27,10 @@ class VectorOutputStream : public std::streambuf {
   VectorOutputStream(const size_t reserve)
       : m_v(reserve) {}
 
-  VectorStream::Buffer& Get() { return m_v; }
-  const VectorStream::Buffer& Get() const { return m_v; }
+  VectorStream::Buffer& get() { return m_v; }
+  const VectorStream::Buffer& get() const { return m_v; }
 
-  void Clear() { m_v.clear(); }
+  void clear() { m_v.clear(); }
 
   VectorOutputStream(VectorOutputStream&& toMove) {
     m_v = std::move(toMove.m_v);

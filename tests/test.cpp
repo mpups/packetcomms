@@ -61,14 +61,14 @@ BOOST_AUTO_TEST_CASE(TestVectorStream) {
     // If we wanted to emplace the serialised data into the
     // comms-system then we would need to move the storage out
     // of VectorOutputStream into a ComPacket so test that here:
-    const_cast<ComPacket&>(pkt) = ComPacket(IdManager::InvalidPacket, std::move(vs.Get()));
+    const_cast<ComPacket&>(pkt) = ComPacket(IdManager::InvalidPacket, std::move(vs.get()));
   }
 
   Type2 out3;
   Type1 out1;
   Type1 out2;
   {
-    const VectorStream::Buffer& buffer = pkt.GetData();
+    const VectorStream::Buffer& buffer = pkt.getData();
     const size_t sizeBefore            = buffer.size();
     VectorInputStream vsIn(buffer);
     std::istream achiveInputStream(&vsIn);
@@ -98,86 +98,86 @@ BOOST_AUTO_TEST_CASE(TestVectorStream) {
 BOOST_AUTO_TEST_CASE(TestIdManager) {
   IdManager packetIds({"Type1", "Type2", "Type3"});
 
-  const IdManager::PacketType ctrl = packetIds.ToId(IdManager::ControlString);
-  BOOST_CHECK_EQUAL(0u, packetIds.ToId(IdManager::InvalidString));
+  const IdManager::PacketType ctrl = packetIds.toId(IdManager::ControlString);
+  BOOST_CHECK_EQUAL(0u, packetIds.toId(IdManager::InvalidString));
   BOOST_CHECK_EQUAL(1u, ctrl);
-  BOOST_CHECK_EQUAL(ctrl + 1, packetIds.ToId("Type1"));
-  BOOST_CHECK_EQUAL(ctrl + 2, packetIds.ToId("Type2"));
-  BOOST_CHECK_EQUAL(ctrl + 3, packetIds.ToId("Type3"));
-  BOOST_CHECK_EQUAL(IdManager::InvalidString, packetIds.ToString(0));
-  BOOST_CHECK_EQUAL(IdManager::ControlString, packetIds.ToString(ctrl));
-  BOOST_CHECK_EQUAL("Type1", packetIds.ToString(ctrl + 1));
-  BOOST_CHECK_EQUAL("Type2", packetIds.ToString(ctrl + 2));
-  BOOST_CHECK_EQUAL("Type3", packetIds.ToString(ctrl + 3));
+  BOOST_CHECK_EQUAL(ctrl + 1, packetIds.toId("Type1"));
+  BOOST_CHECK_EQUAL(ctrl + 2, packetIds.toId("Type2"));
+  BOOST_CHECK_EQUAL(ctrl + 3, packetIds.toId("Type3"));
+  BOOST_CHECK_EQUAL(IdManager::InvalidString, packetIds.toString(0));
+  BOOST_CHECK_EQUAL(IdManager::ControlString, packetIds.toString(ctrl));
+  BOOST_CHECK_EQUAL("Type1", packetIds.toString(ctrl + 1));
+  BOOST_CHECK_EQUAL("Type2", packetIds.toString(ctrl + 2));
+  BOOST_CHECK_EQUAL("Type3", packetIds.toString(ctrl + 3));
 }
 
 BOOST_AUTO_TEST_CASE(TestComPacket) {
   ComPacket pkt;
-  BOOST_CHECK(pkt.GetType() == IdManager::InvalidPacket);
-  BOOST_CHECK_EQUAL(0, pkt.GetDataSize());
-  BOOST_CHECK_EQUAL(nullptr, pkt.GetDataPtr());
+  BOOST_CHECK(pkt.getType() == IdManager::InvalidPacket);
+  BOOST_CHECK_EQUAL(0, pkt.getDataSize());
+  BOOST_CHECK_EQUAL(nullptr, pkt.getDataPtr());
 
   constexpr int size                 = 6;
   VectorStream::CharType bytes[size] = "hello";
   ComPacket pkt2(IdManager::InvalidPacket, bytes, size);
-  BOOST_CHECK_EQUAL(size, pkt2.GetDataSize());
-  BOOST_CHECK_NE(nullptr, pkt2.GetDataPtr());
+  BOOST_CHECK_EQUAL(size, pkt2.getDataSize());
+  BOOST_CHECK_NE(nullptr, pkt2.getDataPtr());
 
   // Test packet contains the byte data:
   for (int i = 0; i < size; ++i) {
-    BOOST_CHECK_EQUAL(bytes[i], pkt2.GetData()[i]);
+    BOOST_CHECK_EQUAL(bytes[i], pkt2.getData()[i]);
   }
 
   // Create an Odometry packet with uninitialised data:
   constexpr int size2 = 17;
   ComPacket pkt3(IdManager::ControlPacket, size2);
-  BOOST_CHECK_EQUAL(size2, pkt3.GetDataSize());
-  BOOST_CHECK_NE(nullptr, pkt3.GetDataPtr());
+  BOOST_CHECK_EQUAL(size2, pkt3.getDataSize());
+  BOOST_CHECK_NE(nullptr, pkt3.getDataPtr());
 
   // Test that pkt3 gets moved (and made invalid):
   BOOST_CHECK_NE(size, size2);
-  BOOST_CHECK_EQUAL(IdManager::ControlPacket, pkt3.GetType());
+  BOOST_CHECK_EQUAL(IdManager::ControlPacket, pkt3.getType());
   pkt2 = std::move(pkt3);
-  BOOST_CHECK_EQUAL(IdManager::InvalidPacket, pkt3.GetType());
-  BOOST_CHECK_EQUAL(size2, pkt2.GetDataSize());
+  BOOST_CHECK_EQUAL(IdManager::InvalidPacket, pkt3.getType());
+  BOOST_CHECK_EQUAL(size2, pkt2.getDataSize());
 
   // Test move constructor on pkt2 (which was pkt3):
   ComPacket pkt4(std::move(pkt2));
-  BOOST_CHECK_EQUAL(size2, pkt4.GetDataSize());
-  BOOST_CHECK_EQUAL(IdManager::ControlPacket, pkt4.GetType());
-  BOOST_CHECK_EQUAL(0, pkt2.GetDataSize());
-  BOOST_CHECK_EQUAL(IdManager::InvalidPacket, pkt2.GetType());
+  BOOST_CHECK_EQUAL(size2, pkt4.getDataSize());
+  BOOST_CHECK_EQUAL(IdManager::ControlPacket, pkt4.getType());
+  BOOST_CHECK_EQUAL(0, pkt2.getDataSize());
+  BOOST_CHECK_EQUAL(IdManager::InvalidPacket, pkt2.getType());
 }
 
 BOOST_AUTO_TEST_CASE(TestSimpleQueue) {
   SimpleQueue q;
 
   // Check new queue is empty:
-  BOOST_CHECK_EQUAL(0, q.Size());
-  BOOST_CHECK(q.Empty());
+  BOOST_CHECK_EQUAL(0, q.size());
+  BOOST_CHECK(q.empty());
 
   // Add a packet onto queue:
   constexpr int pktSize = 7;
   auto sptr             = std::make_shared<ComPacket>(IdManager::ControlPacket, pktSize);
   BOOST_CHECK_EQUAL(1, sptr.use_count());
-  q.Emplace(sptr);
-  BOOST_CHECK_EQUAL(1, q.Size());
+  q.emplace(sptr);
+  BOOST_CHECK_EQUAL(1, q.size());
   BOOST_CHECK_EQUAL(2, sptr.use_count());
 
   // Check SimpleQueue::Front() returns shared_ptr to same packet:
-  auto sptr2 = q.Front();
+  auto sptr2 = q.front();
   BOOST_CHECK_EQUAL(3, sptr.use_count());
   BOOST_CHECK(sptr == sptr2);
 
   // Check queue locking:
-  SimpleQueue::LockedQueue lockedQueue = q.Lock();
+  SimpleQueue::LockedQueue lockedQueue = q.lock();
 
   // Whilts queue is not empty, and we have a lock
-  // check WaitNotEmpty() returns without blocking:
+  // check WaitNotempty() returns without blocking:
   bool blocked     = true;
   auto asyncWaiter = std::thread([&]() {
     // Wait asynchronously so failing test does not block forever:
-    lockedQueue.WaitNotEmpty();
+    lockedQueue.waitNotempty();
     blocked = false;
   });
   try {
@@ -189,9 +189,9 @@ BOOST_AUTO_TEST_CASE(TestSimpleQueue) {
   BOOST_CHECK(!blocked);
 
   // Check popping makes it empty again:
-  q.Pop();
-  BOOST_CHECK_EQUAL(0, q.Size());
-  BOOST_CHECK(q.Empty());
+  q.pop();
+  BOOST_CHECK_EQUAL(0, q.size());
+  BOOST_CHECK(q.empty());
   BOOST_CHECK_EQUAL(2, sptr.use_count());
   sptr2.reset();
 }
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleQueue) {
 BOOST_AUTO_TEST_CASE(TestPacketMuxerExitsCleanly) {
   AlwaysFailSocket mockSocket;
   PacketMuxer muxer(mockSocket, {});
-  while (muxer.Ok()) {
+  while (muxer.ok()) {
   }
 }
 
@@ -209,28 +209,28 @@ BOOST_AUTO_TEST_CASE(TestPacketMuxer) {
   PacketMuxer muxer(socket, {"MockPacket"});
 
   // Transport should be ok here:
-  BOOST_CHECK(muxer.Ok());
+  BOOST_CHECK(muxer.ok());
 
   usleep(100000);
 
   // Emplace payload:
   VectorStream::CharType payload[testPayloadSize];
-  muxer.EmplacePacket("MockPacket", payload, testPayloadSize);
+  muxer.emplacePacket("MockPacket", payload, testPayloadSize);
 
   // Post identical payload:
-  muxer.EmplacePacket("MockPacket", payload, testPayloadSize);
+  muxer.emplacePacket("MockPacket", payload, testPayloadSize);
 
   // Give the muxer time to send:
   usleep(100000);
 
   // Did it send all posted packets before exiting?
-  BOOST_CHECK_EQUAL(muxer.GetNumPosted(), muxer.GetNumSent());
+  BOOST_CHECK_EQUAL(muxer.getNumPosted(), muxer.getNumSent());
 }
 
 BOOST_AUTO_TEST_CASE(TestDemuxerExitsCleanly) {
   AlwaysFailSocket socket;
   PacketDemuxer demuxer(socket, {});
-  while (demuxer.Ok()) {
+  while (demuxer.ok()) {
   }
 }
 
@@ -255,7 +255,7 @@ void* RunTcpServerThread(void* arg) {
     char msg[256] = "";
 
     BOOST_CHECK(connection->IsValid());
-    int bytes = connection->Read(msg, MSG_SIZE);
+    int bytes = connection->read(msg, MSG_SIZE);
     BOOST_CHECK_EQUAL(bytes, MSG_SIZE);
     BOOST_CHECK_EQUAL(msg, MSG);
 
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(TestTcp) {
   TcpSocket client;
   BOOST_REQUIRE(client.Connect("localhost", TEST_PORT));
 
-  client.Write(MSG, MSG_SIZE);
+  client.write(MSG, MSG_SIZE);
   client.Shutdown();
 
   pthread_join(serverThread, 0);
@@ -296,12 +296,12 @@ void* RunUdpServerThread(void* arg) {
 
   // First read the connection-less udp message:
   const int udpMsgSize = strlen(UDP_MSG) + 1;
-  int bytes            = server->Read(msg, udpMsgSize);
+  int bytes            = server->read(msg, udpMsgSize);
   BOOST_CHECK_EQUAL(bytes, udpMsgSize);
   BOOST_CHECK_EQUAL(msg, UDP_MSG);
 
   // Then read the connected message:
-  bytes = server->Read(msg, MSG_SIZE);
+  bytes = server->read(msg, MSG_SIZE);
   BOOST_CHECK_EQUAL(bytes, MSG_SIZE);
   BOOST_CHECK_EQUAL(msg, MSG);
 
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(TestUdp) {
 
   // Test datagram to a connection:
   client.Connect("127.0.0.1", TEST_PORT);
-  client.Write(MSG, MSG_SIZE);
+  client.write(MSG, MSG_SIZE);
 
   pthread_join(serverThread, 0);
 

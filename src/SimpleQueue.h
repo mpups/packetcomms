@@ -22,7 +22,7 @@ class SimpleQueue {
         lock automatically released when the LockedQueue object
         goes out of scope.
 
-        A LockedQueue can only be constructed by a call to SimpleQueue::Lock();
+        A LockedQueue can only be constructed by a call to SimpleQueue::lock();
     */
   class LockedQueue {
     friend class SimpleQueue;
@@ -34,13 +34,13 @@ class SimpleQueue {
     virtual ~LockedQueue() {}
 
     template <class Rep, class Period>
-    void WaitNotEmpty(const std::chrono::duration<Rep, Period>& timeout) {
+    void waitNotEmpty(const std::chrono::duration<Rep, Period>& timeout) {
       if (m_q.m_items.empty()) {
         m_q.m_notEmpty.wait_for(m_secureLock, timeout);
       }
     }
 
-    void WaitNotEmpty() {
+    void waitNotempty() {
       while (m_q.m_items.empty()) {
         m_q.m_notEmpty.wait(m_secureLock);
       }
@@ -61,7 +61,7 @@ class SimpleQueue {
         This call will block forever if you hold a LockedQueue from
         this queue in the same thread.
     */
-  void Emplace(const ComPacket::ConstSharedPacket& item) {
+  void emplace(const ComPacket::ConstSharedPacket& item) {
     std::lock_guard<std::mutex> guard(m_lock);
     m_items.emplace(item);
     m_notEmpty.notify_all();
@@ -71,14 +71,14 @@ class SimpleQueue {
         This call will block forever if you already hold a LockedQueue
         from this queue in the same thread.
     */
-  LockedQueue Lock() { return LockedQueue(*this); }
+  LockedQueue lock() { return LockedQueue(*this); }
 
   // You may or may not get away with calling these without holding a
   // LockedQueue object, but technically you should hold one before calling them:
-  size_t Size() const { return m_items.size(); }
-  bool Empty() const { return m_items.empty(); }
-  const ComPacket::ConstSharedPacket& Front() const { return m_items.front(); }
-  void Pop() { m_items.pop(); }
+  size_t size() const { return m_items.size(); }
+  bool empty() const { return m_items.empty(); }
+  const ComPacket::ConstSharedPacket& front() const { return m_items.front(); }
+  void pop() { m_items.pop(); }
 
  protected:
  private:

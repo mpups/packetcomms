@@ -21,10 +21,10 @@ PacketSubscriber::~PacketSubscriber() {
     would trigger in PacketDemuxer::Unsubscribe() when the PacketSubscription attempted
     to unsubscribe automatically on destruction.
 */
-void PacketSubscriber::Unsubscribe() {
-  m_comms.Unsubscribe(this);
+void PacketSubscriber::unsubscribe() {
+  m_comms.unsubscribe(this);
 }
 
-bool PacketSubscriber::IsSubscribed() const {
-  return m_comms.IsSubscribed(this);
+bool PacketSubscriber::isSubscribed() const {
+  return m_comms.isSubscribed(this);
 }

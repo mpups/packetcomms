@@ -32,8 +32,8 @@ class IdManager {
 
   virtual ~IdManager() {}
 
-  PacketType ToId(const std::string& name) const { return m_map.at(name); }
-  const std::string& ToString(const PacketType id) const { return m_reverse[id]; }
+  PacketType toId(const std::string& name) const { return m_map.at(name); }
+  const std::string& toString(const PacketType id) const { return m_reverse[id]; }
 
  private:
   std::map<std::string, PacketType> m_map;

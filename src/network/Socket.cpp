@@ -117,7 +117,7 @@ bool Socket::Connect( const Ipv4Address& addr )
     @param message Storage for received bytes.
     @return Number of bytes read or -1 if there was an error.
 **/
-int Socket::Read( char* message, size_t maxBytes )
+int Socket::read( char* message, size_t maxBytes )
 {
     int n = recv( m_socket, message, maxBytes, MSG_NOSIGNAL );
 
@@ -141,7 +141,7 @@ int Socket::Read( char* message, size_t maxBytes )
     @param message Bytes to send, must be at least size bytes in the buffer.
     @return Number of bytes written or -1 if there was an error.
 **/
-int Socket::Write( const char* message, size_t size )
+int Socket::write( const char* message, size_t size )
 {
     int n = send( m_socket, message, size, MSG_NOSIGNAL );
     if ( n < 0 )
@@ -160,7 +160,7 @@ int Socket::Write( const char* message, size_t size )
 /**
     @param block True set socket to blocking mode, false sets socket to non-blocking.
 **/
-void Socket::SetBlocking( bool block )
+void Socket::setBlocking( bool block )
 {
     if ( block )
     {
@@ -204,7 +204,7 @@ bool Socket::GetPeerAddress( Ipv4Address& address )
     @param timeout Maximum time to wait in milliseconds (default value leads to no timeout).
     @return true if data is ready, false if the wait timed-out or there was an error.
 */
-bool Socket::ReadyForReading( int timeoutInMilliseconds ) const
+bool Socket::readyForReading( int timeoutInMilliseconds ) const
 {
     return WaitForSingleEvent( POLLIN, timeoutInMilliseconds );
 }

@@ -18,8 +18,8 @@ PacketMuxer::PacketMuxer(AbstractWriter& socket, const std::vector<std::string>&
       m_numSent(0),
       m_transport(socket),
       m_transportError(false),
-      m_sendThread(std::bind(&PacketMuxer::SendLoop, std::ref(*this))) {
-  m_transport.SetBlocking(false);
+      m_sendThread(std::bind(&PacketMuxer::sendLoop, std::ref(*this))) {
+  m_transport.setBlocking(false);
 }
 
 PacketMuxer::~PacketMuxer() {
@@ -39,7 +39,7 @@ PacketMuxer::~PacketMuxer() {
 /**
     Return false if ther ehave been any communication errors, true otherwise.
 */
-bool PacketMuxer::Ok() const {
+bool PacketMuxer::ok() const {
   return m_transportError == false;
 }
 
@@ -51,10 +51,10 @@ bool PacketMuxer::Ok() const {
     Runs asnchronously in its own thread :- it is passed
     using std::bind to a SimpleAsyncFunction object.
 */
-void PacketMuxer::SendLoop() {
-  std::clog << "PacketMuxer::SendLoop() entered." << std::endl;
+void PacketMuxer::sendLoop() {
+  std::clog << "PacketMuxer::sendLoop() entered." << std::endl;
 
-  SendControlMessage(ControlMessage::Hello);
+  sendControlMessage(ControlMessage::Hello);
 
   // Grab the lock for the transmit/send queues:
   std::unique_lock<std::recursive_mutex> guard(m_txLock);
@@ -72,7 +72,7 @@ void PacketMuxer::SendLoop() {
         // 2. Lets this side detect if the other side has hung up or crashed (Sending the packet will fail at the socket level).
         // These are similar to TCP keep-alive messages, but there is no defined standard about how to use TCP keepalive to
         // achieve the same behaviour:
-        SendControlMessage(ControlMessage::HeartBeat);
+        sendControlMessage(ControlMessage::HeartBeat);
       }
     }
 
@@ -81,11 +81,11 @@ void PacketMuxer::SendLoop() {
     /// indicating how many send loops it has been not empty?
     /// (But in that case the system is overloaded anyway so what would we like to do when overloaded?)
     for (auto& pair : m_txQueues) {
-      SendAll(pair.second);
+      sendAll(pair.second);
     }
   }
 
-  std::clog << "PacketMuxer::SendLoop() exited." << std::endl;
+  std::clog << "PacketMuxer::sendLoop() exited." << std::endl;
 }
 
 /**
@@ -99,10 +99,10 @@ void PacketMuxer::SendLoop() {
     @bug Bug on shutdown - the queues are always empty so we never attempt to send any packets
     and therefore never get to state where m_transportError is true, hence the caller loops forever.
 */
-void PacketMuxer::SendAll(ComPacket::PacketContainer& packets) {
+void PacketMuxer::sendAll(ComPacket::PacketContainer& packets) {
   while (m_transportError == false && packets.empty() == false) {
     // Here we must send before popping to guarantee the shared_ptr is valid for the lifetime of SendPacket.
-    SendPacket(*(packets.front().get()));
+    sendPacket(*(packets.front().get()));
     packets.pop();
     m_numSent += 1;
   }
@@ -117,22 +117,22 @@ void PacketMuxer::SendAll(ComPacket::PacketContainer& packets) {
 
     followed by the data payload.
 */
-void PacketMuxer::SendPacket(const ComPacket& packet) {
-  assert(packet.GetType() != IdManager::InvalidPacket);  // Catch attempts to send invalid packets
+void PacketMuxer::sendPacket(const ComPacket& packet) {
+  assert(packet.getType() != IdManager::InvalidPacket);  // Catch attempts to send invalid packets
 
   // Write the type as an unsigned 32-bit integer in network byte order:
   size_t writeCount = sizeof(uint32_t);
-  uint32_t type     = htonl(static_cast<uint32_t>(packet.GetType()));
-  bool ok           = WriteBytes(reinterpret_cast<const uint8_t*>(&type), writeCount);
+  uint32_t type     = htonl(static_cast<uint32_t>(packet.getType()));
+  bool ok           = writeBytes(reinterpret_cast<const uint8_t*>(&type), writeCount);
 
   // Write the data size:
-  uint32_t size = htonl(packet.GetDataSize());
+  uint32_t size = htonl(packet.getDataSize());
   writeCount    = sizeof(uint32_t);
-  ok &= WriteBytes(reinterpret_cast<const uint8_t*>(&size), writeCount);
+  ok &= writeBytes(reinterpret_cast<const uint8_t*>(&size), writeCount);
 
   // Write the byte data:
-  writeCount = packet.GetDataSize();
-  ok &= WriteBytes(reinterpret_cast<const uint8_t*>(packet.GetDataPtr()), writeCount);
+  writeCount = packet.getDataSize();
+  ok &= writeBytes(reinterpret_cast<const uint8_t*>(packet.getDataPtr()), writeCount);
 
   m_transportError = !ok;
 }
@@ -144,9 +144,9 @@ void PacketMuxer::SendPacket(const ComPacket& packet) {
 
     @return true if all bytes were written, false if there was an error at any point.
 */
-bool PacketMuxer::WriteBytes(const uint8_t* buffer, size_t& size) {
+bool PacketMuxer::writeBytes(const uint8_t* buffer, size_t& size) {
   while (size > 0) {
-    int n = m_transport.Write(reinterpret_cast<const VectorStream::CharType*>(buffer), size);
+    int n = m_transport.write(reinterpret_cast<const VectorStream::CharType*>(buffer), size);
     if (n < 0 || m_transportError) {
       return false;
     }
@@ -158,11 +158,11 @@ bool PacketMuxer::WriteBytes(const uint8_t* buffer, size_t& size) {
   return true;
 }
 
-void PacketMuxer::SignalPacketPosted() {
+void PacketMuxer::signalPacketPosted() {
   m_numPosted += 1;
   m_txReady.notify_one();
 }
 
-void PacketMuxer::SendControlMessage(ControlMessage msg) {
-  EmplacePacket(IdManager::ControlString, reinterpret_cast<VectorStream::CharType*>(&msg), sizeof(std::underlying_type<ControlMessage>::type));
+void PacketMuxer::sendControlMessage(ControlMessage msg) {
+  emplacePacket(IdManager::ControlString, reinterpret_cast<VectorStream::CharType*>(&msg), sizeof(std::underlying_type<ControlMessage>::type));
 }

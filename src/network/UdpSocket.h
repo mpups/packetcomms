@@ -11,7 +11,7 @@ class Ipv4Address;
     Inherits from the base class Socket which provides the generic socket functionality.
 
     UDP sockets allows connection-less communication between sockets using SendTo().
-    Alternatively the socket can be connected and datagrams sent using Read() and Write().
+    Alternatively the socket can be connected and datagrams sent using read() and write().
 **/
 class UdpSocket : public Socket
 {

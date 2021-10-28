@@ -28,8 +28,8 @@ class PacketSubscription {
 
   virtual ~PacketSubscription();
 
-  bool IsSubscribed() const;
-  const PacketDemuxer& GetDemuxer() const;
+  bool isSubscribed() const;
+  const PacketDemuxer& getDemuxer() const;
 
  protected:
  private:

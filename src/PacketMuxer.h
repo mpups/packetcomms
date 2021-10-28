@@ -46,26 +46,26 @@ class PacketMuxer {
   PacketMuxer(AbstractWriter& socket, const std::vector<std::string>& packetIds);
   virtual ~PacketMuxer();
 
-  bool Ok() const;
+  bool ok() const;
 
   template <typename... Args>
-  void EmplacePacket(const std::string& name, Args&&... args);
+  void emplacePacket(const std::string& name, Args&&... args);
 
-  uint32_t GetNumPosted() const { return m_numPosted; };
-  uint32_t GetNumSent() const { return m_numSent; };
+  uint32_t getNumPosted() const { return m_numPosted; };
+  uint32_t getNumSent() const { return m_numSent; };
 
  protected:
   typedef std::pair<IdManager::PacketType, ComPacket::PacketContainer> MapEntry;
   typedef std::pair<IdManager::PacketType, std::vector<Subscription> > SubscriptionEntry;
 
-  void SendLoop();
-  void SendAll(ComPacket::PacketContainer& packets);
-  void SendPacket(const ComPacket& packet);
+  void sendLoop();
+  void sendAll(ComPacket::PacketContainer& packets);
+  void sendPacket(const ComPacket& packet);
 
-  bool WriteBytes(const uint8_t* buffer, size_t& size);
+  bool writeBytes(const uint8_t* buffer, size_t& size);
 
  private:
-  void SignalPacketPosted();
+  void signalPacketPosted();
 
   IdManager m_packetIds;
 
@@ -85,18 +85,18 @@ class PacketMuxer {
   // be setup before it can run:
   std::thread m_sendThread;
 
-  void SendControlMessage(ControlMessage msg);
+  void sendControlMessage(ControlMessage msg);
 };
 
 /**
     @note Uses perfect forwarding: g++-4.8 and later only.
 */
 template <typename... Args>
-void PacketMuxer::EmplacePacket(const std::string& name, Args&&... args) {
-  const IdManager::PacketType type = m_packetIds.ToId(name);
+void PacketMuxer::emplacePacket(const std::string& name, Args&&... args) {
+  const IdManager::PacketType type = m_packetIds.toId(name);
   std::lock_guard<std::recursive_mutex> guard(m_txLock);
   m_txQueues[type].emplace(std::make_shared<ComPacket>(type, std::forward<Args>(args)...));
-  SignalPacketPosted();
+  signalPacketPosted();
 }
 
 #endif /* _PACKET_MUXER_H_ */

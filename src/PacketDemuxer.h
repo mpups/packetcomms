@@ -40,22 +40,22 @@ class PacketDemuxer {
   PacketDemuxer(AbstractReader& socket, const std::vector<std::string>& packetIds);
   virtual ~PacketDemuxer();
 
-  bool Ok() const;
+  bool ok() const;
 
-  PacketSubscription Subscribe(const std::string& type, PacketSubscriber::CallBack callback);
-  void Unsubscribe(const PacketSubscriber* subscriber);
-  bool IsSubscribed(const PacketSubscriber* subscriber) const;
+  PacketSubscription subscribe(const std::string& type, PacketSubscriber::CallBack callback);
+  void unsubscribe(const PacketSubscriber* subscriber);
+  bool isSubscribed(const PacketSubscriber* subscriber) const;
 
-  void ReceiveLoop();
-  bool ReceivePacket(ComPacket& packet, const int timeoutInMilliseconds);
+  void receiveLoop();
+  bool receivePacket(ComPacket& packet, const int timeoutInMilliseconds);
 
-  const IdManager& GetIdManager() const { return m_packetIds; }
+  const IdManager& getIdManager() const { return m_packetIds; }
 
  protected:
   typedef std::pair<IdManager::PacketType, std::vector<SubscriberPtr> > SubscriptionEntry;
 
-  bool ReadBytes(uint8_t* buffer, size_t& size, bool transportErrorOnZeroBytes = false);
-  void SignalTransportError();
+  bool readBytes(uint8_t* buffer, size_t& size, bool transportErrorOnZeroBytes = false);
+  void signalTransportError();
 
  private:
   IdManager m_packetIds;
@@ -67,10 +67,10 @@ class PacketDemuxer {
   // This must be initialised last to ensure all other members are intialised before the thread starts:
   std::thread m_receiverThread;
 
-  void ReceiveHelloMessage(ComPacket& packet, int timeoutInMillisecs);
-  void HandleControlMessage(const ComPacket::ConstSharedPacket& sptr);
-  ControlMessage GetControlMessage(const ComPacket::ConstSharedPacket& sptr);
-  void WarnAboutSubscribers();
+  void receiveHelloMessage(ComPacket& packet, int timeoutInMillisecs);
+  void handleControlMessage(const ComPacket::ConstSharedPacket& sptr);
+  ControlMessage getControlMessage(const ComPacket::ConstSharedPacket& sptr);
+  void warnAboutSubscribers();
 };
 
 #endif /* __PACKET_DEMUXER_H__ */

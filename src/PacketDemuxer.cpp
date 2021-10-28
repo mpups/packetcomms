@@ -16,15 +16,15 @@ PacketDemuxer::PacketDemuxer(AbstractReader& socket, const std::vector<std::stri
     : m_packetIds(packetIds),
       m_transport(socket),
       m_transportError(false),
-      m_receiverThread(std::bind(&PacketDemuxer::ReceiveLoop, std::ref(*this))) {
-  m_transport.SetBlocking(false);
+      m_receiverThread(std::bind(&PacketDemuxer::receiveLoop, std::ref(*this))) {
+  m_transport.setBlocking(false);
 }
 
 PacketDemuxer::~PacketDemuxer() {
-  SignalTransportError();  /// Causes receive-thread to exit (@todo use better method)
+  signalTransportError();  /// Causes receive-thread to exit (@todo use better method)
 
   // Check if there any remaining subscribers:
-  WarnAboutSubscribers();
+  warnAboutSubscribers();
 
   try {
     m_receiverThread.join();
@@ -36,7 +36,7 @@ PacketDemuxer::~PacketDemuxer() {
 /**
     Return false if there have been any communication errors, true otherwise.
 */
-bool PacketDemuxer::Ok() const {
+bool PacketDemuxer::ok() const {
   return m_transportError == false;
 }
 
@@ -46,8 +46,8 @@ bool PacketDemuxer::Ok() const {
  *  Returns a subscription object that will automatically unsubsribe
  *  (and deregister the callback) when it goes out of scope.
 */
-PacketSubscription PacketDemuxer::Subscribe(const std::string& typeName, PacketSubscriber::CallBack callback) {
-  const IdManager::PacketType type = m_packetIds.ToId(typeName);
+PacketSubscription PacketDemuxer::subscribe(const std::string& typeName, PacketSubscriber::CallBack callback) {
+  const IdManager::PacketType type = m_packetIds.toId(typeName);
 
   std::lock_guard<std::mutex> guard(m_subscriberLock);
   SubscriptionEntry::second_type& queue = m_subscribers[type];
@@ -58,9 +58,9 @@ PacketSubscription PacketDemuxer::Subscribe(const std::string& typeName, PacketS
   return PacketSubscription(queue.back());
 }
 
-void PacketDemuxer::Unsubscribe(const PacketSubscriber* pSubscriber) {
-  const IdManager::PacketType type = pSubscriber->GetType();
-  std::clog << "Removing subscriber for '" << m_packetIds.ToString(type) << "'" << std::endl;
+void PacketDemuxer::unsubscribe(const PacketSubscriber* pSubscriber) {
+  const IdManager::PacketType type = pSubscriber->getType();
+  std::clog << "Removing subscriber for '" << m_packetIds.toString(type) << "'" << std::endl;
 
   std::lock_guard<std::mutex> guard(m_subscriberLock);
   SubscriptionEntry::second_type& queue = m_subscribers[type];
@@ -77,8 +77,8 @@ void PacketDemuxer::Unsubscribe(const PacketSubscriber* pSubscriber) {
 /**
     @return true if the specified subscriber is subscribed to this demuxer.
 */
-bool PacketDemuxer::IsSubscribed(const PacketSubscriber* pSubscriber) const {
-  const IdManager::PacketType type = pSubscriber->GetType();
+bool PacketDemuxer::isSubscribed(const PacketSubscriber* pSubscriber) const {
+  const IdManager::PacketType type = pSubscriber->getType();
   auto queueItr                    = m_subscribers.find(type);
 
   if (queueItr == m_subscribers.end()) {
@@ -103,28 +103,28 @@ bool PacketDemuxer::IsSubscribed(const PacketSubscriber* pSubscriber) const {
     Runs asnchronously in its own thread :- it is passed
     using std::bind to a SimpleAsyncFunction object.
 */
-void PacketDemuxer::ReceiveLoop() {
-  std::clog << "PacketDemuxer::ReceiveLoop() entered." << std::endl;
+void PacketDemuxer::receiveLoop() {
+  std::clog << "PacketDemuxer::receiveLoop() entered." << std::endl;
   ComPacket packet;
   constexpr int helloTimeoutInMilliseconds = 2000;
-  ReceiveHelloMessage(packet, helloTimeoutInMilliseconds);
+  receiveHelloMessage(packet, helloTimeoutInMilliseconds);
 
   while (m_transportError == false) {
     constexpr int timeoutInMilliseconds = 1000;
-    if (ReceivePacket(packet, timeoutInMilliseconds)) {
-      const IdManager::PacketType packetType = packet.GetType();  // Need to cache this before we use std::move
-      //std::clog << GetIdManager().ToString( packetType ) << " bytes: " << packet.GetDataSize() << std::endl;
+    if (receivePacket(packet, timeoutInMilliseconds)) {
+      const IdManager::PacketType packetType = packet.getType();  // Need to cache this before we use std::move
+      //std::clog << GetIdManager().toString( packetType ) << " bytes: " << packet.getDataSize() << std::endl;
       auto sptr = std::make_shared<ComPacket>(std::move(packet));
 
       if (packetType == IdManager::ControlPacket) {
         // Control messages are used by the muxer to communicate
         // with the demuxer (this is a one way protocol).
-        HandleControlMessage(sptr);
+        handleControlMessage(sptr);
       } else {
         // Post the new packet to the message queues of all the subscribers for this packet type:
         std::lock_guard<std::mutex> guard(m_subscriberLock);
         SubscriptionEntry::second_type& queue = m_subscribers[packetType];
-        //std::clog << "Posting '" << m_packetIds.ToString(packetType) << "' to " << queue.size() << " subscribers" << std::endl;
+        //std::clog << "Posting '" << m_packetIds.toString(packetType) << "' to " << queue.size() << " subscribers" << std::endl;
         for (auto& subscriber : queue) {
           subscriber->m_callback(sptr);
         }
@@ -132,15 +132,15 @@ void PacketDemuxer::ReceiveLoop() {
     }
   }
 
-  std::clog << "PacketDemuxer::ReceiveLoop() exited." << std::endl;
+  std::clog << "PacketDemuxer::receiveLoop() exited." << std::endl;
 }
 
 /**
     @param packet If return value is true then packet will contain the new data, if false packet remains unchanged.
     @return false on comms error, true if successful.
 */
-bool PacketDemuxer::ReceivePacket(ComPacket& packet, const int timeoutInMilliseconds) {
-  if (m_transport.ReadyForReading(timeoutInMilliseconds) == false) {
+bool PacketDemuxer::receivePacket(ComPacket& packet, const int timeoutInMilliseconds) {
+  if (m_transport.readyForReading(timeoutInMilliseconds) == false) {
     return false;
   }
 
@@ -148,17 +148,17 @@ bool PacketDemuxer::ReceivePacket(ComPacket& packet, const int timeoutInMillisec
   uint32_t size = 0;
 
   // For the first read we generate a transport error on zero bytes
-  // (because ReadyForReading() said there were bytes available):
+  // (because readyForReading() said there were bytes available):
   ///@note - the above is incorrect as ReadyForReading uses POLLIN which
   /// also returns true if there is out of band data ready for reading.
   size_t byteCount = sizeof(uint32_t);
-  bool ok          = ReadBytes(reinterpret_cast<uint8_t*>(&type), byteCount, false);
+  bool ok          = readBytes(reinterpret_cast<uint8_t*>(&type), byteCount, false);
   if (!ok) {
     return false;
   }
 
   byteCount = sizeof(uint32_t);
-  ok        = ReadBytes(reinterpret_cast<uint8_t*>(&size), byteCount);
+  ok        = readBytes(reinterpret_cast<uint8_t*>(&size), byteCount);
   if (!ok) {
     return false;
   }
@@ -167,14 +167,14 @@ bool PacketDemuxer::ReceivePacket(ComPacket& packet, const int timeoutInMillisec
   size = ntohl(size);
 
   ComPacket p(static_cast<IdManager::PacketType>(type), size);
-  byteCount = p.GetDataSize();
-  ok        = ReadBytes(reinterpret_cast<uint8_t*>(p.GetDataPtr()), byteCount);
+  byteCount = p.getDataSize();
+  ok        = readBytes(reinterpret_cast<uint8_t*>(p.getDataPtr()), byteCount);
   if (!ok) {
     return false;
   }
 
   std::swap(p, packet);
-  assert(packet.GetType() != IdManager::InvalidPacket);  // Catch invalid packets at the lowest level.
+  assert(packet.getType() != IdManager::InvalidPacket);  // Catch invalid packets at the lowest level.
 
   return true;
 }
@@ -184,19 +184,19 @@ bool PacketDemuxer::ReceivePacket(ComPacket& packet, const int timeoutInMillisec
 
     On error (return of false) size will contain the number of bytes that were remaining to be read.
 
-    @param transportErrorOnZeroBytes If this is true then in the case that Read() returns zero bytes
+    @param transportErrorOnZeroBytes If this is true then in the case that read() returns zero bytes
     a transport error will be signalled and ReadBytes() will return false.
 
     @return true if all bytes were written, false if there was an error at any point. Also see impact
     of the transportErrorOnZeroBytes parameter on the return value.
 */
-bool PacketDemuxer::ReadBytes(uint8_t* buffer, size_t& size, bool transportErrorOnZeroBytes) {
+bool PacketDemuxer::readBytes(uint8_t* buffer, size_t& size, bool transportErrorOnZeroBytes) {
   while (size > 0 && m_transportError == false) {
-    const int n = m_transport.Read(reinterpret_cast<char*>(buffer), size);
+    const int n = m_transport.read(reinterpret_cast<char*>(buffer), size);
 
     if (n < 0 || (n == 0 && transportErrorOnZeroBytes)) {
       std::clog << "Signalling transport error because bytes read := " << n << std::endl;
-      SignalTransportError();
+      signalTransportError();
       return false;
     }
 
@@ -211,7 +211,7 @@ bool PacketDemuxer::ReadBytes(uint8_t* buffer, size_t& size, bool transportError
   return true;
 }
 
-void PacketDemuxer::SignalTransportError() {
+void PacketDemuxer::signalTransportError() {
   m_transportError = true;
 }
 
@@ -227,14 +227,14 @@ void PacketDemuxer::SignalTransportError() {
     its own secure handshaking procedure at a higher level (external to the
     Muxer/Demuxer system).
 */
-void PacketDemuxer::ReceiveHelloMessage(ComPacket& packet, const int timeoutInMillisecs) {
-  if (ReceivePacket(packet, timeoutInMillisecs)) {
+void PacketDemuxer::receiveHelloMessage(ComPacket& packet, const int timeoutInMillisecs) {
+  if (receivePacket(packet, timeoutInMillisecs)) {
     bool failHard = true;
 
     // Very first packet should be a 'Hello' control packet:
-    if (packet.GetType() == IdManager::ControlPacket) {
+    if (packet.getType() == IdManager::ControlPacket) {
       auto sptr          = std::make_shared<ComPacket>(std::move(packet));
-      ControlMessage msg = GetControlMessage(sptr);
+      ControlMessage msg = getControlMessage(sptr);
       if (msg == ControlMessage::Hello) {
         failHard = false;
       }
@@ -242,26 +242,26 @@ void PacketDemuxer::ReceiveHelloMessage(ComPacket& packet, const int timeoutInMi
 
     if (failHard) {
       std::cerr << "Error in PacketDemuxer::Receive() - first message was not 'Hello'." << std::endl;
-      SignalTransportError();
+      signalTransportError();
     }
   }
 }
 
-void PacketDemuxer::HandleControlMessage(const ComPacket::ConstSharedPacket&) {
+void PacketDemuxer::handleControlMessage(const ComPacket::ConstSharedPacket&) {
 }
 
-ControlMessage PacketDemuxer::GetControlMessage(const ComPacket::ConstSharedPacket& sptr) {
+ControlMessage PacketDemuxer::getControlMessage(const ComPacket::ConstSharedPacket& sptr) {
   typedef std::underlying_type<ControlMessage>::type UnderlyingType;
-  const UnderlyingType netMsg = *reinterpret_cast<const UnderlyingType*>((sptr->GetDataPtr()));
+  const UnderlyingType netMsg = *reinterpret_cast<const UnderlyingType*>((sptr->getDataPtr()));
   return static_cast<ControlMessage>(netMsg);
 }
 
-void PacketDemuxer::WarnAboutSubscribers() {
+void PacketDemuxer::warnAboutSubscribers() {
   std::lock_guard<std::mutex> guard(m_subscriberLock);
   for (const SubscriptionEntry& entry : m_subscribers) {
     const size_t n = entry.second.size();
     if (n > 0) {
-      std::clog << "Warning: there are " << n << " live subscribers for '" << m_packetIds.ToString(entry.first) << "'" << std::endl;
+      std::clog << "Warning: there are " << n << " live subscribers for '" << m_packetIds.toString(entry.first) << "'" << std::endl;
     }
   }
 }

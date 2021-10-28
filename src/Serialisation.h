@@ -12,14 +12,14 @@
 #include <cereal/archives/binary.hpp>
 
 template <typename... Args>
-void Serialise(std::streambuf& stream, const Args&... types) {
+void serialise(std::streambuf& stream, const Args&... types) {
   std::ostream archiveStream(&stream);
   cereal::BinaryOutputArchive archive(archiveStream);
   archive(std::forward<const Args&>(types)...);
 }
 
 template <typename... Args>
-void Deserialise(std::streambuf& vis, Args&... types) {
+void deserialise(std::streambuf& vis, Args&... types) {
   std::istream stream(&vis);
   cereal::BinaryInputArchive archive(stream);
   archive(std::forward<Args&>(types)...);

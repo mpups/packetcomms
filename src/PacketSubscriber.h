@@ -23,14 +23,14 @@ class PacketSubscriber {
   PacketSubscriber(PacketSubscriber&)  = delete;
   PacketSubscriber(PacketSubscriber&&) = delete;
 
-  IdManager::PacketType GetType() const { return m_type; };
+  IdManager::PacketType getType() const { return m_type; };
 
-  const PacketDemuxer& GetDemuxer() const { return m_comms; };
+  const PacketDemuxer& getDemuxer() const { return m_comms; };
 
  protected:
   PacketSubscriber(const IdManager::PacketType, PacketDemuxer&, CallBack&);
-  void Unsubscribe();
-  bool IsSubscribed() const;
+  void unsubscribe();
+  bool isSubscribed() const;
 
  private:
   const IdManager::PacketType m_type;

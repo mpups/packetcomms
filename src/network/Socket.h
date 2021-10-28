@@ -32,14 +32,14 @@ public:
     bool Connect( const char*, int );
     bool Connect( const Ipv4Address& address );
 
-    int Read( char* message, size_t maxBytes );
-    int Write( const char* message, size_t size );
+    int read( char* message, size_t maxBytes );
+    int write( const char* message, size_t size );
 
-    void SetBlocking( bool );
+    void setBlocking( bool );
 
     bool GetPeerAddress( Ipv4Address& address );
 
-    bool ReadyForReading( int timeoutInMilliseconds = -1 ) const;
+    bool readyForReading( int timeoutInMilliseconds = -1 ) const;
     bool ReadyForWriting( int timeoutInMilliseconds = -1 ) const;
 
 protected:
