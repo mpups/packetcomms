@@ -11,4 +11,4 @@
 #include "PacketSubscription.h"
 #include "SimpleQueue.h"
 
-#endif // _PACKETCOMMS_H_
+#endif  // _PACKETCOMMS_H_

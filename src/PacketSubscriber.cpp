@@ -5,16 +5,13 @@
     This is the only constructor and is protected: the intent being
     that only a PacketDemuxer object can construct a PacketSubscription.
 */
-PacketSubscriber::PacketSubscriber( const IdManager::PacketType type, PacketDemuxer& comms, CallBack& callback )
-:
-    m_type      ( type ),
-    m_comms     ( comms ),
-    m_callback  ( callback)
-{
+PacketSubscriber::PacketSubscriber(const IdManager::PacketType type, PacketDemuxer& comms, CallBack& callback)
+    : m_type(type),
+      m_comms(comms),
+      m_callback(callback) {
 }
 
-PacketSubscriber::~PacketSubscriber()
-{
+PacketSubscriber::~PacketSubscriber() {
 }
 
 /**
@@ -24,12 +21,10 @@ PacketSubscriber::~PacketSubscriber()
     would trigger in PacketDemuxer::Unsubscribe() when the PacketSubscription attempted
     to unsubscribe automatically on destruction.
 */
-void PacketSubscriber::Unsubscribe()
-{
-    m_comms.Unsubscribe( this );
+void PacketSubscriber::Unsubscribe() {
+  m_comms.Unsubscribe(this);
 }
 
-bool PacketSubscriber::IsSubscribed() const
-{
-    return m_comms.IsSubscribed( this );
+bool PacketSubscriber::IsSubscribed() const {
+  return m_comms.IsSubscribed(this);
 }

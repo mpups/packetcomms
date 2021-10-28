@@ -3,11 +3,10 @@
 
 #include <cstdint>
 
-enum class ControlMessage : std::uint8_t
-{
-    HeartBeat = 0,
-    Hello     = 254,
-    GoodBye   = 255
+enum class ControlMessage : std::uint8_t {
+  HeartBeat = 0,
+  Hello     = 254,
+  GoodBye   = 255
 };
 
-#endif // MUXERCONTROLMESSAGES_H
+#endif  // MUXERCONTROLMESSAGES_H
