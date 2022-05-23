@@ -74,7 +74,7 @@ class VectorInputStream : public std::streambuf {
   }
 
  private:
-  virtual std::streambuf::int_type overflow() {
+  virtual std::streambuf::int_type overflow(std::streambuf::int_type) {
     return traits_type::eof();
   }
 };

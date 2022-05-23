@@ -258,7 +258,7 @@ ControlMessage PacketDemuxer::getControlMessage(const ComPacket::ConstSharedPack
 
 void PacketDemuxer::warnAboutSubscribers() {
   std::lock_guard<std::mutex> guard(m_subscriberLock);
-  for (const SubscriptionEntry& entry : m_subscribers) {
+  for (const auto& entry : m_subscribers) {
     const size_t n = entry.second.size();
     if (n > 0) {
       std::clog << "Warning: there are " << n << " live subscribers for '" << m_packetIds.toString(entry.first) << "'" << std::endl;
