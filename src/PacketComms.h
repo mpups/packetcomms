@@ -10,5 +10,6 @@
 #include "PacketSubscriber.h"
 #include "PacketSubscription.h"
 #include "SimpleQueue.h"
+#include "Sync.h"
 
 #endif  // _PACKETCOMMS_H_

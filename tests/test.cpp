@@ -14,6 +14,7 @@
 #include "../src/network/Socket.h"
 #include "../src/network/TcpSocket.h"
 #include "../src/network/UdpSocket.h"
+#include "../src/Sync.h"
 #include "MockSockets.h"
 
 #include <pthread.h>
