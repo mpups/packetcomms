@@ -2,6 +2,9 @@
 
 #include "Sync.h"
 
+#include <string>
+#include <atomic>
+
 using namespace std::chrono_literals;
 
 // Blocks until client acknowledges it is ready. The readyMsgStr must be defined and agreed by
