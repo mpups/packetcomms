@@ -1,16 +1,23 @@
 #include "UdpSocket.h"
 
 #include <assert.h>
-
-#include <unistd.h>
-#include <errno.h>
-#include <memory.h>
 #include <stdio.h>
 
-#include <netinet/in.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-#include <fcntl.h>
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+  #include <memory.h>
+#else
+  #include <unistd.h>
+  #include <errno.h>
+  #include <memory.h>
+  #include <netinet/in.h>
+  #include <netdb.h>
+  #include <netinet/tcp.h>
+  #include <fcntl.h>
+#endif
+
+#include "WinsockInit.h"
 
 #include "Ipv4Address.h"
 
@@ -20,6 +27,9 @@
 **/
 UdpSocket::UdpSocket ()
 {
+#ifdef WIN32
+    initWinsock();
+#endif
     m_socket = socket( AF_INET, SOCK_DGRAM, 0 );
     assert( m_socket != -1 );
 }
@@ -49,11 +59,23 @@ int UdpSocket::SendTo( const Ipv4Address& addr, const char* message, size_t size
         return -1;
     }
 
+#ifdef WIN32
+    int n = sendto( m_socket, message, size, 0, (struct sockaddr*)addr.Get_sockaddr_in_Ptr(), sizeof(struct sockaddr_in) );
+    if ( n == -1 )
+    {
+        int error = WSAGetLastError();
+        if ( error == WSAEWOULDBLOCK )
+        {
+            n = 0;
+        }
+    }
+#else
     int n = sendto( m_socket, message, size, MSG_NOSIGNAL, (struct sockaddr*)addr.Get_sockaddr_in_Ptr(), sizeof(struct sockaddr_in) );
     if ( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK) )
     {
         n = 0;
     }
+#endif
     
     return n;
 }
@@ -83,11 +105,23 @@ int UdpSocket::ReceiveFrom( char* message, size_t size, Ipv4Address* addr )
         length = sizeof(sockaddr_in);
     }
 
+#ifdef WIN32
+    int n = recvfrom( m_socket, message, size, 0, sockAddr, &length );
+    if ( n == -1 )
+    {
+        int error = WSAGetLastError();
+        if ( error == WSAEWOULDBLOCK )
+        {
+            n = 0;
+        }
+    }
+#else
     int n = recvfrom( m_socket, message, size, MSG_NOSIGNAL, sockAddr, &length );
     if ( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK) )
     {
         n = 0;
     }
+#endif
     
     return n;
 }

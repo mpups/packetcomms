@@ -55,8 +55,8 @@ class ComPacket {
   };
 
   IdManager::PacketType getType() const { return m_type; };
-  const VectorStream::CharType* getDataPtr() const { return &(m_data[0]); };
-  VectorStream::CharType* getDataPtr() { return &(m_data[0]); };
+  const VectorStream::CharType* getDataPtr() const { return m_data.data(); };
+  VectorStream::CharType* getDataPtr() { return m_data.data(); };
   std::vector<VectorStream::CharType>::size_type getDataSize() const noexcept { return m_data.size(); };
   const std::vector<VectorStream::CharType>& getData() const { return m_data; };
   std::vector<VectorStream::CharType>& getData() { return m_data; };

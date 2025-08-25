@@ -2,16 +2,23 @@
 
 
 #include <assert.h>
-
-#include <unistd.h>
-#include <errno.h>
-#include <memory.h>
 #include <stdio.h>
 
-#include <netinet/in.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-#include <fcntl.h>
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+  #include <memory.h>
+#else
+  #include <unistd.h>
+  #include <errno.h>
+  #include <memory.h>
+  #include <netinet/in.h>
+  #include <netdb.h>
+  #include <netinet/tcp.h>
+  #include <fcntl.h>
+#endif
+
+#include "WinsockInit.h"
 
 /**
     Initialise the base class with an invlaid socket ID then create
@@ -19,6 +26,9 @@
 **/
 TcpSocket::TcpSocket ()
 {
+#ifdef WIN32
+    initWinsock();
+#endif
     m_socket = socket( AF_INET, SOCK_STREAM, 0 );
     assert( m_socket != -1 );
 }
@@ -70,7 +80,11 @@ std::unique_ptr<TcpSocket> TcpSocket::Accept()
   std::unique_ptr<TcpSocket> connection;
 
   int reuse = 1;
+#ifdef WIN32
+  setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(int));
+#else
   setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+#endif
 
   struct sockaddr_in addr;
   memset((void*)&addr, 0, sizeof(sockaddr_in));

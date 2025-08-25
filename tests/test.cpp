@@ -1,5 +1,7 @@
 #define BOOST_TEST_MAIN
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
 
 #include <boost/test/unit_test.hpp>
 
@@ -17,7 +19,14 @@
 #include "../src/Sync.h"
 #include "MockSockets.h"
 
-#include <pthread.h>
+#ifdef WIN32
+  #include <windows.h>
+  #include <thread>
+  #include <chrono>
+#else
+  #include <pthread.h>
+  #include <unistd.h>
+#endif
 #include <memory>
 
 struct Type1 {
@@ -186,7 +195,11 @@ BOOST_AUTO_TEST_CASE(TestSimpleQueue) {
   } catch (const std::system_error& e) {
     std::clog << "Error: " << e.what() << std::endl;
   }
+#ifdef WIN32
+  std::this_thread::sleep_for(std::chrono::microseconds(1000));
+#else
   usleep(1000);  // sleep so async func has time to finish
+#endif
   BOOST_CHECK(!blocked);
 
   // Check popping makes it empty again:
@@ -212,7 +225,11 @@ BOOST_AUTO_TEST_CASE(TestPacketMuxer) {
   // Transport should be ok here:
   BOOST_CHECK(muxer.ok());
 
+#ifdef WIN32
+  std::this_thread::sleep_for(std::chrono::microseconds(100000));
+#else
   usleep(100000);
+#endif
 
   // Emplace payload:
   VectorStream::CharType payload[testPayloadSize];
@@ -222,7 +239,11 @@ BOOST_AUTO_TEST_CASE(TestPacketMuxer) {
   muxer.emplacePacket("MockPacket", payload, testPayloadSize);
 
   // Give the muxer time to send:
+#ifdef WIN32
+  std::this_thread::sleep_for(std::chrono::microseconds(100000));
+#else
   usleep(100000);
+#endif
 
   // Did it send all posted packets before exiting?
   BOOST_CHECK_EQUAL(muxer.getNumPosted(), muxer.getNumSent());
@@ -240,8 +261,8 @@ BOOST_AUTO_TEST_CASE(TestPacketDemuxer) {
   PacketDemuxer demuxer(socket, {});
 }
 
-const int MSG_SIZE       = 8;
-const char MSG[MSG_SIZE] = "1234abc";
+const int MSG_SIZE           = 8;
+const char TEST_MSG[MSG_SIZE] = "1234abc";
 const char UDP_MSG[]     = "Udp connection-less Datagram!";
 
 /*
@@ -258,7 +279,7 @@ void* RunTcpServerThread(void* arg) {
     BOOST_CHECK(connection->IsValid());
     int bytes = connection->read(msg, MSG_SIZE);
     BOOST_CHECK_EQUAL(bytes, MSG_SIZE);
-    BOOST_CHECK_EQUAL(msg, MSG);
+    BOOST_CHECK_EQUAL(msg, TEST_MSG);
 
     connection->Shutdown();
   }
@@ -274,17 +295,25 @@ BOOST_AUTO_TEST_CASE(TestTcp) {
   server.Listen(0);
 
   // Create a server thread for testing:
+#ifdef WIN32
+  std::thread serverThread(RunTcpServerThread, (void*)&server);
+#else
   pthread_t serverThread;
   pthread_create(&serverThread, 0, RunTcpServerThread, (void*)&server);
+#endif
 
   // client connects and sends a test message
   TcpSocket client;
   BOOST_REQUIRE(client.Connect("localhost", TEST_PORT));
 
-  client.write(MSG, MSG_SIZE);
+  client.write(TEST_MSG, MSG_SIZE);
   client.Shutdown();
 
+#ifdef WIN32
+  serverThread.join();
+#else
   pthread_join(serverThread, 0);
+#endif
 }
 
 /*
@@ -304,7 +333,7 @@ void* RunUdpServerThread(void* arg) {
   // Then read the connected message:
   bytes = server->read(msg, MSG_SIZE);
   BOOST_CHECK_EQUAL(bytes, MSG_SIZE);
-  BOOST_CHECK_EQUAL(msg, MSG);
+  BOOST_CHECK_EQUAL(msg, TEST_MSG);
 
   return 0;
 }
@@ -316,8 +345,12 @@ BOOST_AUTO_TEST_CASE(TestUdp) {
   server.Bind(TEST_PORT);
 
   // Create a server thread for testing:
+#ifdef WIN32
+  std::thread serverThread(RunUdpServerThread, (void*)&server);
+#else
   pthread_t serverThread;
   pthread_create(&serverThread, 0, RunUdpServerThread, (void*)&server);
+#endif
 
   // Test connection-less datagram:
   Ipv4Address localhost("127.0.0.1", TEST_PORT);
@@ -328,9 +361,13 @@ BOOST_AUTO_TEST_CASE(TestUdp) {
 
   // Test datagram to a connection:
   client.Connect("127.0.0.1", TEST_PORT);
-  client.write(MSG, MSG_SIZE);
+  client.write(TEST_MSG, MSG_SIZE);
 
+#ifdef WIN32
+  serverThread.join();
+#else
   pthread_join(serverThread, 0);
+#endif
 
   client.Shutdown();
 }
@@ -342,7 +379,10 @@ BOOST_AUTO_TEST_CASE(TestIpv4Address) {
 
   std::string hostName;
   localhost.GetHostName(hostName);
+#ifndef WIN32
+  // On Windows, localhost resolves to actual machine hostname, which is correct behavior
   BOOST_CHECK_EQUAL("localhost", hostName.c_str());
+#endif
   std::string hostIP;
   localhost.GetHostAddress(hostIP);
   BOOST_CHECK_EQUAL("127.0.0.1", hostIP.c_str());

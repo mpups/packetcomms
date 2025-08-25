@@ -13,13 +13,20 @@ add_compile_options(-Wall -Wextra -Werror)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# Set platform-specific networking libraries
+if(WIN32)
+    set(NETWORKING_LIBS ws2_32 wsock32)
+else()
+    set(NETWORKING_LIBS pthread)
+endif()
+
 file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
 add_library(packetcomms STATIC ${SRC})
-target_link_libraries(packetcomms pthread)
+target_link_libraries(packetcomms ${NETWORKING_LIBS})
 
 set(PACKETCOMMS_LIBRARIES packetcomms PARENT_SCOPE)
 set(PACKETCOMMS_INCLUDES ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/external/cereal/include PARENT_SCOPE)
 
 add_executable(test tests/test.cpp)
-target_link_libraries(test packetcomms ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+target_link_libraries(test packetcomms ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${NETWORKING_LIBS})
 add_test(test_packetcomms test)

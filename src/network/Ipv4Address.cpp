@@ -4,7 +4,12 @@
 #include <memory.h>
 #include <stdio.h>
 
-#include <netdb.h>
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#else
+  #include <netdb.h>
+#endif
 
 /**
     Construct an uninitialised address - IsValid() shall return false.
@@ -124,7 +129,11 @@ void Ipv4Address::GetHostNameInfo( std::string& host, int nameInfoFlags ) const
     int err = getnameinfo( addr, sizeof(m_addr), buffer, size, 0, 0, nameInfoFlags );
 
     // If the buffer is too small keep growing and retrying until it is ok:
+#ifdef WIN32
+    while ( err == WSANO_RECOVERY && size < 512 )  // Windows doesn't have EAI_OVERFLOW
+#else
     while ( err == EAI_OVERFLOW && size < 512 )
+#endif
     {
         size *= 2;
         delete [] buffer;

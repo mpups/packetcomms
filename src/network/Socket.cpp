@@ -2,13 +2,18 @@
 
 #include <assert.h>
 
-#include <unistd.h>
-#include <errno.h>
-#include <memory.h>
-
-#include <netinet/tcp.h>
-#include <fcntl.h>
-#include <poll.h>
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+  #include <memory.h>
+#else
+  #include <unistd.h>
+  #include <errno.h>
+  #include <memory.h>
+  #include <netinet/tcp.h>
+  #include <fcntl.h>
+  #include <poll.h>
+#endif
 
 #include "Ipv4Address.h"
 
@@ -30,7 +35,11 @@ Socket::~Socket()
 {
     if ( m_socket != -1 )
     {
+#ifdef WIN32
+        closesocket( m_socket );
+#else
         close( m_socket );
+#endif
     }
 }
 
@@ -64,11 +73,19 @@ bool Socket::Bind( int portNumber )
 **/
 void Socket::Shutdown()
 {
+#ifdef WIN32
+    int err = shutdown( m_socket, SD_BOTH );
+    if ( err == -1 )
+    {
+        std::clog <<  __FILE__ << ": Error in Shutdown() " << WSAGetLastError() << std::endl;
+    }
+#else
     int err = shutdown( m_socket, SHUT_RDWR );
     if ( err == -1 )
     {
         std::clog <<  __FILE__ << ": Error in Shutdown() " << strerror(errno) << std::endl;
     }
+#endif
 }
 
 /**
@@ -119,6 +136,18 @@ bool Socket::Connect( const Ipv4Address& addr )
 **/
 int Socket::read( char* message, size_t maxBytes )
 {
+#ifdef WIN32
+    int n = recv( m_socket, message, maxBytes, 0 );
+    
+    if ( n == -1 )
+    {
+        int error = WSAGetLastError();
+        if ( error == WSAEWOULDBLOCK )
+        {
+            n = 0;
+        }
+    }
+#else
     int n = recv( m_socket, message, maxBytes, MSG_NOSIGNAL );
 
     if ( n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK) )
@@ -127,6 +156,7 @@ int Socket::read( char* message, size_t maxBytes )
         // Otherwise we return the error (-1)
         n = 0;
     }
+#endif
     
     return n;
 }
@@ -143,6 +173,22 @@ int Socket::read( char* message, size_t maxBytes )
 **/
 int Socket::write( const char* message, size_t size )
 {
+#ifdef WIN32
+    int n = send( m_socket, message, size, 0 );
+    if ( n < 0 )
+    {
+        //fprintf( stderr, "socket error: %d\n", WSAGetLastError() );
+    }
+
+    if ( n == -1 )
+    {
+        int error = WSAGetLastError();
+        if ( error == WSAEWOULDBLOCK )
+        {
+            n = 0;
+        }
+    }
+#else
     int n = send( m_socket, message, size, MSG_NOSIGNAL );
     if ( n < 0 )
     {
@@ -153,6 +199,7 @@ int Socket::write( const char* message, size_t size )
     {
         n = 0;
     }
+#endif
     
     return n;
 }
@@ -162,6 +209,10 @@ int Socket::write( const char* message, size_t size )
 **/
 void Socket::setBlocking( bool block )
 {
+#ifdef WIN32
+    u_long mode = block ? 0 : 1;
+    ioctlsocket( m_socket, FIONBIO, &mode );
+#else
     if ( block )
     {
         fcntl( m_socket, F_SETFL, O_ASYNC );
@@ -170,6 +221,7 @@ void Socket::setBlocking( bool block )
     {
         fcntl( m_socket, F_SETFL, O_NONBLOCK );
     }
+#endif
 }
 
 /**
@@ -187,7 +239,7 @@ bool Socket::GetPeerAddress( Ipv4Address& address )
     socklen_t length = sizeof( sockaddr_storage );
     int err = getpeername( m_socket, addr, &length );
 
-    if ( err == 0 || length > sizeof( sockaddr_storage ) )
+    if ( err == 0 && length <= static_cast<socklen_t>(sizeof( sockaddr_storage )) )
     {
         if ( addr_storage->ss_family == AF_INET )
         {
@@ -229,6 +281,34 @@ bool Socket::ReadyForWriting( int timeoutInMilliseconds ) const
 */
 bool Socket::WaitForSingleEvent( const short pollEvent, int timeoutInMilliseconds ) const
 {
+#ifdef WIN32
+    WSAPOLLFD pfds;
+    pfds.fd = m_socket;
+    pfds.events = pollEvent;
+    pfds.revents = 0;
+    int val = WSAPoll( &pfds, 1, timeoutInMilliseconds );
+
+    if (val == -1)
+    {
+        std::clog << __FILE__ << ": Error from WSAPoll() - " << WSAGetLastError() << std::endl;
+    }
+
+    if( (pfds.revents & POLLERR) )
+    {
+        std::clog << __FILE__ << ": POLLERR!\n";
+    }
+
+    if( (pfds.revents & POLLHUP) )
+    {
+        std::clog << __FILE__ << ": POLLHUP!\n";
+        /// @todo - need return to indicate hang-up for robust shutdown.
+    }
+
+    if( (pfds.revents & POLLNVAL) )
+    {
+        std::clog << __FILE__ << ": POLLNVAL!\n";
+    }
+#else
     struct pollfd pfds;
     pfds.fd = m_socket;
     pfds.events = pollEvent;
@@ -255,6 +335,7 @@ bool Socket::WaitForSingleEvent( const short pollEvent, int timeoutInMillisecond
     {
         std::clog << __FILE__ << ": POLLNVAL!\n";
     }
+#endif
 
     // If successful then val should be one because
     // we were only waiting on one file descriptor.

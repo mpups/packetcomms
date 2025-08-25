@@ -1,9 +1,15 @@
 #ifndef __IPV4_ADDRESS_H__
 #define __IPV4_ADDRESS_H__
 
-#include <netinet/in.h>
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#else
+  #include <netinet/in.h>
+#endif
 
 #include <string>
+#include <cstdint>
 
 /**
     Class for storing and manipulating IPv4 addresses.
