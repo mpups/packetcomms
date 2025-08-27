@@ -9,9 +9,14 @@ include_directories(external/cereal/include)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-add_compile_options(-Wall -Wextra -Werror)
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+if (MSVC)
+    add_compile_options(/Wall)
+else()
+    add_compile_options(-Wall -Wextra -Werror)
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+endif()
+
 
 # Set platform-specific networking libraries
 if(WIN32)
